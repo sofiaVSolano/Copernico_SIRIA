@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIRIA</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.2/dist/minty/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    
+</head>
+<body class="bg-light">
+
+    <div class="container py-5">
+
+        <div class="card shadow p-4">
+            <h3 class="mb-4 text-center text-primary">MODELO MCP PARA LA GENERACIÓN DE UN PLAN DE RECUPERACIÓN POST SEQUÍA</h3>
+
+            <div class="mb-3">
+                <label for="context" class="form-label">Observación de sequía</label>
+                <textarea id="context" class="form-control" rows="4" placeholder="Describe el contexto, síntomas y tiempo en carretera..."></textarea>
+            </div>
+
+            <div class="text-center mb-4">
+                <button onclick="evaluar()" class="btn btn-primary">Evaluar</button>
+            </div>
+
+            <h5 class="text-success">Resultado del Diagnóstico:</h5>
+            <textarea id="resultado" class="form-control" rows="12" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        async function evaluar() {
+            const context = document.getElementById("context").value;
+
+            const response = await fetch("http://localhost:8000/recovery_plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ context, observation: "" })
+            });
+
+            const data = await response.json();
+
+            let texto = data.assessment
+                .replace(/###\s*/g, '')
+                .replace(/####\s*/g, '')
+                .replace(/\*\*/g, '')
+                .replace(/\\n/g, '\n');
+
+            document.getElementById("resultado").value = texto;
+        }
+    </script>
+
+</body>
+</html>
