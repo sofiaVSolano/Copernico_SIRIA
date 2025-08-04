@@ -15,7 +15,7 @@ jobs:
       - name: Ping para mantener el servicio activo
         run: |
           # Usar curl para hacer una solicitud HTTP a tu aplicación
-          curl -fsSL https://TU-URL-DE-RENDER.onrender.com || echo "Ping completo"
+          curl -fsSL https://copernico-siria.onrender.com/ || echo "Ping completo"
           
           # Registrar la hora del ping para referencia
           echo "Ping ejecutado: $(date)"
