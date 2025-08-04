@@ -1,0 +1,160 @@
+/* Estilos para componentes compartidos - navbar, botones, etc. */
+
+/* Colores del tema */
+:root {
+  --primary-color: #1e88e5; /* Azul vibrante como en la imagen compartida */
+  --primary-dark: #1565c0;
+  --primary-light: #64b5f6;
+  --accent-color: #00c853;  /* Verde para acentos */
+  --text-light: #ffffff;
+  --text-dark: #212121;
+  --background-light: #f5f5f5;
+  --background-dark: #263238;
+  --gray-light: #eceff1;
+  --gray-medium: #b0bec5;
+  --border-radius: 8px;
+  --transition-speed: 0.3s;
+  --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Navbar mejorado */
+.navbar {
+  padding: 0.8rem 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  transition: all var(--transition-speed) ease;
+}
+
+.navbar-siria {
+  background: var(--primary-color) !important;
+  background-image: linear-gradient(135deg, var(--primary-color), var(--primary-dark)) !important;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-speed) ease;
+}
+
+.navbar-dark .navbar-brand {
+  color: var(--text-light);
+}
+
+.navbar-dark .navbar-brand:hover {
+  background-color: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  margin: 0 0.25rem;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-speed) ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: var(--text-light);
+  background-color: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+  color: var(--text-light);
+  background-color: rgba(255,255,255,0.2);
+  font-weight: 600;
+}
+
+.navbar-toggler {
+  border: none;
+  padding: 0.5rem;
+  background-color: rgba(255,255,255,0.1);
+  transition: all var(--transition-speed) ease;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Botones mejorados */
+.btn-siria {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.625rem 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-speed) ease;
+}
+
+.btn-siria:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.btn-siria-primary {
+  background: var(--primary-color);
+  border: none;
+  color: var(--text-light);
+}
+
+.btn-siria-primary:hover {
+  background: var(--primary-dark);
+}
+
+/* Botones de la landing page */
+.btn-landing {
+  background: transparent;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 0.625rem 1.5rem;
+  border: 2px solid var(--text-light);
+  color: var(--text-light);
+  border-radius: var(--border-radius);
+  margin-right: 1rem;
+  transition: all var(--transition-speed) ease;
+}
+
+.btn-landing:hover {
+  background: var(--text-light);
+  color: var(--primary-color);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.buttons-container {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+/* Footer mejorado */
+.footer-siria {
+  background: var(--background-dark);
+  padding: 2rem 0;
+  margin-top: 3rem;
+  color: var(--text-light);
+}
+
+.footer-siria p {
+  margin-bottom: 0.5rem;
+}
+
+/* Tarjetas mejoradas */
+.card-siria {
+  border-radius: var(--border-radius);
+  border: none;
+  box-shadow: var(--box-shadow);
+  transition: all var(--transition-speed) ease;
+}
+
+.card-siria:hover {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  transform: translateY(-5px);
+}
