@@ -10,24 +10,36 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from fastapi.staticfiles import StaticFiles
+import logging
 
-#Inicialización
-app = FastAPI()
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Variables de entorno - cargar desde .env en desarrollo
+load_dotenv()
+
+# Inicialización
+app = FastAPI(
+    title="SIRIA API",
+    description="Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA",
+    version="1.0.0",
+)
+
+# Montar archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Configurar templates
 templates = Jinja2Templates(directory="templates")
 
-
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"], #GET #POST
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-
-#variables de entorno
-load_dotenv()
 
 #Modelo de gpt 
 model = ChatOpenAI(

@@ -1,0 +1,28 @@
+name: Keep Render App Alive
+
+on:
+  schedule:
+    # Ejecuta cada 5 minutos
+    - cron: '*/5 * * * *'
+  
+  # También permite ejecutarlo manualmente desde la interfaz de GitHub
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping para mantener el servicio activo
+        run: |
+          # Usar curl para hacer una solicitud HTTP a tu aplicación
+          curl -fsSL https://copernico-siria.onrender.com/ || echo "Ping completo"
+          
+          # Registrar la hora del ping para referencia
+          echo "Ping ejecutado: $(date)"
+        
+      - name: Verificar estado del servicio
+        # Solo se ejecuta si el ping falló (para registrar información adicional)
+        if: failure()
+        run: |
+          echo "⚠️ No se pudo contactar con la aplicación"
+          echo "Por favor, verifica el estado del servicio en el dashboard de Render"
