@@ -2,6 +2,8 @@
 
 SIRIA es una aplicación web que utiliza IA para evaluar condiciones de sequía y proporcionar planes de recuperación personalizados.
 
+**🌐 [Ver aplicación desplegada](https://copernico-siria.onrender.com/)**
+
 ## Características
 
 - Evaluación de condiciones de sequía mediante descripción textual
@@ -46,6 +48,10 @@ uvicorn model:app --reload
 
 ## Despliegue en Render
 
+El proyecto está actualmente desplegado en: [https://copernico-siria.onrender.com/](https://copernico-siria.onrender.com/)
+
+Para desplegar tu propia instancia:
+
 1. Crear una cuenta en Render.com
 2. Conectar el repositorio de GitHub
 3. Crear un nuevo Web Service con:
@@ -54,6 +60,8 @@ uvicorn model:app --reload
 4. Configurar variables de entorno:
    - OPENAI_API_KEY = tu_api_key
    - PYTHONUNBUFFERED = true
+   
+El proyecto incluye un GitHub Action que hace ping al servicio cada 5 minutos para evitar que entre en modo de reposo (plan gratuito de Render).
 
 ## Equipo PADIA
 
