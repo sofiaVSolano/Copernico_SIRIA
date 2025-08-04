@@ -42,7 +42,7 @@
             </div>
 
             <div class="text-center mb-4">
-                <button onclick="evaluar()" class="btn btn-siria btn-siria-primary">Evaluar</button>
+                <button id="evaluar-btn" onclick="evaluar()" class="btn btn-siria btn-siria-primary">Evaluar</button>
             </div>
 
             <h5 class="text-success">Resultado del Diagnóstico:</h5>
@@ -53,7 +53,7 @@
     <footer class="footer-siria">
         <div class="container text-center">
             <p>© 2025 SIRIA - Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA</p>
-            <p class="mb-0">Desarrollado por COPERNICO</p>
+            <p class="mb-0">Desarrollado por PADIA</p>
         </div>
     </footer>
 
@@ -61,22 +61,46 @@
     <script>
         async function evaluar() {
             const context = document.getElementById("context").value;
+            
+            if (!context.trim()) {
+                alert("Por favor, ingresa una descripción de las condiciones de sequía.");
+                return;
+            }
+            
+            // Mostrar indicador de carga
+            document.getElementById("resultado").value = "Analizando datos...";
+            document.getElementById("evaluar-btn").disabled = true;
+            document.getElementById("evaluar-btn").innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Evaluando...';
 
-            const response = await fetch("http://localhost:8000/recovery_plan", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ context, observation: "" })
-            });
+            try {
+                // Usar URL relativa para que funcione tanto en desarrollo como en producción
+                const response = await fetch("/recovery_plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ context, observation: "" })
+                });
 
-            const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta: ${response.status}`);
+                }
 
-            let texto = data.assessment
-                .replace(/###\s*/g, '')
-                .replace(/####\s*/g, '')
-                .replace(/\*\*/g, '')
-                .replace(/\\n/g, '\n');
+                const data = await response.json();
 
-            document.getElementById("resultado").value = texto;
+                let texto = data.assessment
+                    .replace(/###\s*/g, '')
+                    .replace(/####\s*/g, '')
+                    .replace(/\*\*/g, '')
+                    .replace(/\\n/g, '\n');
+
+                document.getElementById("resultado").value = texto;
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById("resultado").value = "Ocurrió un error al procesar tu solicitud. Por favor intenta nuevamente.";
+            } finally {
+                // Restaurar botón
+                document.getElementById("evaluar-btn").disabled = false;
+                document.getElementById("evaluar-btn").innerHTML = 'Evaluar';
+            }
         }
     </script>
 
