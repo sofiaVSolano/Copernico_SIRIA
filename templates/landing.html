@@ -6,16 +6,43 @@
   <title>Bienvenido a SIRIA</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/components.css') }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-siria">
+    <div class="container">
+      <a class="navbar-brand" href="/">SIRIA</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="/">Inicio</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/evaluar">Evaluación</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/alertas">Alertas</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
   <main>
     <div>
       <span>COPERNICO</span>
       <h1>SIRIA</h1>
       <hr>
       <p>Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA.</p>
-      <a href="/evaluar">EVALUAR</a>
+      <div class="buttons-container">
+        <a href="/evaluar" class="btn-landing">EVALUAR</a>
+        <a href="/alertas" class="btn-landing">ALERTAS</a>
+      </div>
     </div>
 
     <div class="swiper">
@@ -42,9 +69,17 @@
     <img src="https://cdn.pixabay.com/photo/2012/04/13/13/57/scallop-32506_960_720.png" alt="" class="bg2">
   </main>
 
+  <footer class="footer-siria">
+    <div class="container text-center">
+      <p>© 2025 SIRIA - Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA</p>
+      <p class="mb-0">Desarrollado por PADIA</p>
+    </div>
+  </footer>
+
   <!-- Swiper JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-    <script src="/static/js/swiper.js"></script>
+  <script src="/static/js/swiper.js"></script>
 
   <script>
     const swiper = new Swiper('.swiper', {

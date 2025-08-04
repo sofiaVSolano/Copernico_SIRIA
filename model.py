@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
 import os
+import httpx
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -9,24 +10,36 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 from fastapi.staticfiles import StaticFiles
+import logging
 
-#Inicialización
-app = FastAPI()
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Variables de entorno - cargar desde .env en desarrollo
+load_dotenv()
+
+# Inicialización
+app = FastAPI(
+    title="SIRIA API",
+    description="Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA",
+    version="1.0.0",
+)
+
+# Montar archivos estáticos
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Configurar templates
 templates = Jinja2Templates(directory="templates")
 
-
+# Configurar CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"], #GET #POST
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-
-#variables de entorno
-load_dotenv()
 
 #Modelo de gpt 
 model = ChatOpenAI(
@@ -79,6 +92,45 @@ async def landing(request: Request):
 @app.get("/evaluar", response_class=HTMLResponse)
 async def evaluar(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/alertas", response_class=HTMLResponse)
+async def alertas(request: Request):
+    return templates.TemplateResponse("alertas.html", {"request": request})
+
+class ForecastRequest(BaseModel):
+    lat: float
+    lon: float
+
+@app.post("/proxy_forecast")
+async def proxy_forecast(request: ForecastRequest):
+    try:
+        print(f"Recibiendo solicitud de coordenadas: lat={request.lat}, lon={request.lon}")
+        
+        async with httpx.AsyncClient() as client:
+            print(f"Enviando solicitud a API externa...")
+            response = await client.post(
+                "https://siria-drought-api.onrender.com/recent_forecast",
+                json={"lat": request.lat, "lon": request.lon},
+                timeout=30.0
+            )
+            
+            # Verificar si la respuesta fue exitosa
+            response.raise_for_status()
+            
+            # Obtener el contenido JSON de la respuesta
+            data = response.json()
+            print(f"Respuesta recibida para: {data.get('coordinates', {}).get('reference_point', {}).get('description', 'ubicación desconocida')}")
+            
+            return data
+    except httpx.HTTPStatusError as e:
+        print(f"Error HTTP de la API externa: {e}")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except httpx.RequestError as e:
+        print(f"Error al conectar con la API externa: {e}")
+        raise HTTPException(status_code=503, detail="No se pudo conectar con el servicio de pronóstico. Por favor, intente más tarde.")
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

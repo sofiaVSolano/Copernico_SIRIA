@@ -1,0 +1,14 @@
+# variables de entorno
+.env
+# archivos de log
+*.log
+# archivos de caché
+__pycache__/
+*.pyc
+# archivos de configuración de IDEs
+.idea/
+.vscode/
+# archivos de base de datos SQLite
+*.sqlite3
+# archivos de entorno virtual
+venv/

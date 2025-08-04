@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIRIA - Alertas de Sequía</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/components.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        .alert-card {
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .alert-low {
+            border-left: 5px solid #28a745;
+        }
+        .alert-medium {
+            border-left: 5px solid #ffc107;
+        }
+        .alert-high {
+            border-left: 5px solid #dc3545;
+        }
+        .map-container {
+            height: 300px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            z-index: 1; /* Asegurar que el mapa sea visible */
+        }
+        .stats-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255,255,255,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 10px;
+        }
+        /* Estilo para el marcador de ubicación del usuario */
+        .user-location-marker {
+            background: transparent;
+        }
+        .pulse {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: rgba(66, 133, 244, 0.6);
+            border: 3px solid #4285F4;
+            box-shadow: 0 0 0 rgba(66, 133, 244, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(66, 133, 244, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(66, 133, 244, 0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-siria">
+        <div class="container">
+            <a class="navbar-brand" href="/">SIRIA</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/evaluar">Evaluación</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/alertas">Alertas</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <h2 class="text-primary mb-4 text-center">Sistema de Alerta de Sequía</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-6 offset-md-3">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">Verificar condiciones en su ubicación</h5>
+                        <p class="text-muted">Detectaremos automáticamente su ubicación o puede ingresar coordenadas manualmente</p>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="useCurrentLocation" checked>
+                            <label class="form-check-label" for="useCurrentLocation">
+                                Usar mi ubicación actual
+                            </label>
+                        </div>
+                        
+                        <div id="manualCoordinates" style="display: none;">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="latInput" class="form-label">Latitud</label>
+                                    <input type="number" class="form-control" id="latInput" step="0.000001" placeholder="-34.6">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="lonInput" class="form-label">Longitud</label>
+                                    <input type="number" class="form-control" id="lonInput" step="0.000001" placeholder="-58.4">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button id="checkLocationBtn" class="btn btn-siria btn-siria-primary w-100">Verificar condiciones</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="resultsContainer" style="display: none;">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow mb-4 position-relative" id="alertCard">
+                        <div id="loadingOverlay" class="loading-overlay">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title mb-3" id="locationTitle">Ubicación</h4>
+                            <h5 class="mb-3" id="countryText">País</h5>
+                            <div class="alert alert-info mb-4" id="alertMessage">
+                                Analizando condiciones de sequía...
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Período de análisis:</span>
+                                <span id="periodText">-</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Condición del suelo:</span>
+                                <span id="conditionText" class="fw-bold">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="map-container shadow" id="mapContainer">
+                        <!-- Aquí se mostrará el mapa -->
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <h4 class="card-title mb-4">Datos técnicos</h4>
+                            
+                            <div class="stats-box">
+                                <h5 class="text-primary">Humedad del suelo</h5>
+                                <div class="progress mb-3" style="height: 20px;">
+                                    <div id="soilMoistureBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Valor actual:</span>
+                                    <span id="currentSoilMoisture">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Promedio de la zona:</span>
+                                    <span id="avgSoilMoisture">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Tendencia:</span>
+                                    <span id="soilMoistureTrend">-</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-box">
+                                <h5 class="text-primary">Precipitaciones</h5>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Promedio:</span>
+                                    <span id="avgPrecipitation">-</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Máxima registrada:</span>
+                                    <span id="maxPrecipitation">-</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h5 class="text-primary">Recomendaciones</h5>
+                                <p id="recommendationText" class="fst-italic">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer-siria">
+        <div class="container text-center">
+            <p>© 2025 SIRIA - Sistema Inteligente de Recuperación por Impacto de Sequía Asistido por IA</p>
+            <p class="mb-0">Desarrollado por PADIA</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet (reemplaza Google Maps) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script>
+        // Elementos DOM
+        const useCurrentLocationCheckbox = document.getElementById('useCurrentLocation');
+        const manualCoordinatesDiv = document.getElementById('manualCoordinates');
+        const latInput = document.getElementById('latInput');
+        const lonInput = document.getElementById('lonInput');
+        const checkLocationBtn = document.getElementById('checkLocationBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const alertCard = document.getElementById('alertCard');
+        
+        // Variable para el mapa Leaflet
+        let map;
+        let locationMarker;
+        let userLocation = null;
+        
+        // Inicializar el mapa cuando se cargue la página
+        document.addEventListener('DOMContentLoaded', function() {
+            // Crear el mapa centrado en una ubicación por defecto (centro de América del Sur)
+            map = L.map('mapContainer').setView([-15, -60], 3);
+            
+            // Agregar la capa de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            
+            // Intentar obtener la ubicación del usuario al cargar la página
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        
+                        console.log("Ubicación inicial obtenida:", userLocation);
+                        
+                        // Mostrar un marcador en la ubicación del usuario
+                        showUserLocationOnMap();
+                    },
+                    function(error) {
+                        console.warn("Error obteniendo ubicación inicial:", error.message);
+                    },
+                    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
+                );
+            }
+        });
+        
+        // Función para mostrar la ubicación del usuario en el mapa
+        function showUserLocationOnMap() {
+            if (!userLocation || !map) return;
+            
+            // Eliminar marcador anterior si existe
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+            }
+            
+            // Crear icono personalizado para ubicación del usuario
+            const userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: '<div class="pulse"></div>',
+                iconSize: [15, 15]
+            });
+            
+            // Añadir marcador de ubicación del usuario
+            locationMarker = L.marker([userLocation.lat, userLocation.lon], {icon: userIcon})
+                .addTo(map)
+                .bindPopup('Su ubicación actual<br><small>Precisión: ±' + Math.round(userLocation.accuracy) + ' metros</small>');
+            
+            // Centrar el mapa en la ubicación del usuario
+            map.setView([userLocation.lat, userLocation.lon], 10);
+            
+            // Actualizar los campos de entrada manual
+            if (!useCurrentLocationCheckbox.checked) return;
+            
+            if (latInput) latInput.value = userLocation.lat.toFixed(6);
+            if (lonInput) lonInput.value = userLocation.lon.toFixed(6);
+        }
+        
+        // Mostrar/ocultar formulario de coordenadas manuales
+        useCurrentLocationCheckbox.addEventListener('change', function() {
+            manualCoordinatesDiv.style.display = this.checked ? 'none' : 'block';
+        });
+        
+        // Función para obtener la ubicación actual con mayor precisión
+        function getCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocalización no soportada por este navegador'));
+                    return;
+                }
+                
+                // Mostrar un indicador de carga en el botón
+                const originalButtonText = checkLocationBtn.textContent;
+                checkLocationBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Obteniendo ubicación...';
+                checkLocationBtn.disabled = true;
+                
+                // Si ya tenemos una ubicación almacenada, usar esa primero
+                if (userLocation) {
+                    console.log("Usando ubicación guardada:", userLocation);
+                    // Restaurar el botón
+                    checkLocationBtn.textContent = originalButtonText;
+                    checkLocationBtn.disabled = false;
+                    return resolve(userLocation);
+                }
+                
+                // Opciones para mejorar la precisión
+                const options = {
+                    enableHighAccuracy: true,  // Solicitar la mejor precisión posible
+                    timeout: 15000,            // Tiempo máximo para obtener la ubicación (15 segundos)
+                    maximumAge: 0              // No usar ubicaciones en caché
+                };
+                
+                const watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        // Detener el watch después de obtener una posición
+                        navigator.geolocation.clearWatch(watchId);
+                        
+                        // Restaurar el botón
+                        checkLocationBtn.textContent = originalButtonText;
+                        checkLocationBtn.disabled = false;
+                        
+                        console.log("Nueva ubicación obtenida:", position.coords);
+                        
+                        // Guardar la ubicación para futuras consultas
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: position.timestamp
+                        };
+                        
+                        // Mostrar en el mapa
+                        showUserLocationOnMap();
+                        
+                        // Devolver las coordenadas
+                        resolve(userLocation);
+                    },
+                    error => {
+                        // Restaurar el botón
+                        checkLocationBtn.textContent = originalButtonText;
+                        checkLocationBtn.disabled = false;
+                        
+                        // Gestionar diferentes tipos de error
+                        let errorMessage;
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Permiso de ubicación denegado. Por favor, active los permisos de ubicación en su navegador o ingrese las coordenadas manualmente.';
+                                // Mostrar automáticamente el formulario de coordenadas manuales
+                                useCurrentLocationCheckbox.checked = false;
+                                manualCoordinatesDiv.style.display = 'block';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Información de ubicación no disponible. Intente ingresar las coordenadas manualmente.';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'Se agotó el tiempo para obtener la ubicación. Intente nuevamente o ingrese las coordenadas manualmente.';
+                                break;
+                            default:
+                                errorMessage = 'Error desconocido al obtener la ubicación: ' + error.message;
+                        }
+                        console.error("Error de geolocalización:", errorMessage);
+                        reject(new Error(errorMessage));
+                    },
+                    options
+                );
+                
+                // También intentar una sola vez con getCurrentPosition como respaldo
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        if (userLocation) return; // Si ya obtuvimos la ubicación, no hacer nada
+                        
+                        // Restaurar el botón
+                        checkLocationBtn.textContent = originalButtonText;
+                        checkLocationBtn.disabled = false;
+                        
+                        console.log("Ubicación obtenida con getCurrentPosition:", position.coords);
+                        
+                        // Guardar la ubicación para futuras consultas
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: position.timestamp
+                        };
+                        
+                        // Mostrar en el mapa
+                        showUserLocationOnMap();
+                        
+                        // Devolver las coordenadas
+                        resolve(userLocation);
+                    },
+                    null, // Ignorar errores, ya los manejamos en watchPosition
+                    options
+                );
+            });
+        }
+        
+        // Función para mostrar alerta basada en nivel
+        function showAlert(condition, message) {
+            const alertMessage = document.getElementById('alertMessage');
+            alertMessage.textContent = message;
+            
+            // Resetear clases
+            alertMessage.className = 'alert mb-4';
+            alertCard.className = 'card shadow mb-4 position-relative';
+            
+            // Aplicar estilo según condición
+            switch(condition.toLowerCase()) {
+                case 'normal':
+                    alertMessage.classList.add('alert-success');
+                    alertCard.classList.add('alert-low');
+                    break;
+                case 'seco':
+                case 'moderadamente seco':
+                    alertMessage.classList.add('alert-warning');
+                    alertCard.classList.add('alert-medium');
+                    break;
+                case 'muy seco':
+                case 'extremadamente seco':
+                    alertMessage.classList.add('alert-danger');
+                    alertCard.classList.add('alert-high');
+                    break;
+                default:
+                    alertMessage.classList.add('alert-info');
+            }
+        }
+        
+        // Función para actualizar el mapa
+        function updateMap(lat, lon, description, options = {}) {
+            if (!map) {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => updateMap(lat, lon, description, options), 100);
+                });
+                return;
+            }
+            
+            const location = [parseFloat(lat), parseFloat(lon)];
+            
+            // Limpiar capas de datos de API (pero mantener el marcador de ubicación del usuario)
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && layer !== locationMarker) {
+                    map.removeLayer(layer);
+                }
+                if (layer instanceof L.Circle) {
+                    map.removeLayer(layer);
+                }
+                if (layer instanceof L.Polyline) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Centrar el mapa en la ubicación
+            map.setView(location, options.zoom || 10);
+            
+            // Agregar marcador para el punto de referencia
+            const refMarker = L.marker(location, {
+                icon: L.icon({
+                    iconUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-icon.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowUrl: 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/images/marker-shadow.png',
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
+            
+            // Añadir popup con información
+            refMarker.bindPopup(`
+                <strong>${description || 'Punto de referencia'}</strong><br>
+                Latitud: ${lat}<br>
+                Longitud: ${lon}
+            `).openPopup();
+            
+            // Si tenemos la ubicación del usuario y es diferente del punto de referencia,
+            // dibujar una línea entre ambos puntos
+            if (userLocation && 
+                (Math.abs(userLocation.lat - lat) > 0.001 || Math.abs(userLocation.lon - lon) > 0.001)) {
+                
+                // Crear una línea entre la ubicación del usuario y el punto de referencia
+                L.polyline([
+                    [userLocation.lat, userLocation.lon],
+                    location
+                ], {
+                    color: '#3388ff',
+                    weight: 2,
+                    opacity: 0.7,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                
+                // Ajustar el zoom para mostrar ambos puntos
+                const bounds = L.latLngBounds([
+                    [userLocation.lat, userLocation.lon],
+                    location
+                ]);
+                map.fitBounds(bounds, { padding: [30, 30] });
+            }
+            
+            // Forzar actualización del mapa
+            map.invalidateSize();
+        }
+        
+        // Función para actualizar la interfaz con los datos
+        function updateUI(data) {
+            // Datos de ubicación
+            document.getElementById('locationTitle').textContent = data.coordinates.reference_point.description || 'Ubicación analizada';
+            document.getElementById('countryText').textContent = data.country || 'País no disponible';
+            
+            // Período
+            document.getElementById('periodText').textContent = `${data.period.start_date} a ${data.period.end_date}`;
+            
+            // Condición
+            document.getElementById('conditionText').textContent = data.soil_condition.condition;
+            
+            // Alerta
+            showAlert(data.soil_condition.condition, data.soil_condition.message);
+            
+            // Datos de humedad del suelo
+            const soilMoisture = data.soil_moisture_prediction.soil_water_1;
+            const soilMoisturePercent = Math.round(soilMoisture * 100);
+            document.getElementById('currentSoilMoisture').textContent = `${soilMoisturePercent}%`;
+            document.getElementById('soilMoistureBar').style.width = `${soilMoisturePercent}%`;
+            document.getElementById('soilMoistureBar').textContent = `${soilMoisturePercent}%`;
+            
+            // Colores de la barra según nivel de humedad
+            if (soilMoisturePercent < 30) {
+                document.getElementById('soilMoistureBar').className = 'progress-bar bg-danger';
+            } else if (soilMoisturePercent < 60) {
+                document.getElementById('soilMoistureBar').className = 'progress-bar bg-warning';
+            } else {
+                document.getElementById('soilMoistureBar').className = 'progress-bar bg-success';
+            }
+            
+            // Estadísticas
+            document.getElementById('avgSoilMoisture').textContent = `${Math.round(data.stats.avg_soil_moisture * 100)}%`;
+            
+            const trend = data.stats.soil_moisture_trend;
+            const trendElement = document.getElementById('soilMoistureTrend');
+            if (trend > 0) {
+                trendElement.textContent = `+${(trend * 100).toFixed(2)}% (aumentando)`;
+                trendElement.className = 'text-success';
+            } else if (trend < 0) {
+                trendElement.textContent = `${(trend * 100).toFixed(2)}% (disminuyendo)`;
+                trendElement.className = 'text-danger';
+            } else {
+                trendElement.textContent = 'Estable';
+                trendElement.className = '';
+            }
+            
+            // Precipitaciones
+            document.getElementById('avgPrecipitation').textContent = `${(data.stats.avg_precipitation * 100).toFixed(2)} mm`;
+            document.getElementById('maxPrecipitation').textContent = `${(data.stats.max_precipitation * 100).toFixed(2)} mm`;
+            
+            // Recomendación
+            document.getElementById('recommendationText').textContent = data.soil_condition.message;
+            
+            // Actualizar mapa
+            updateMap(
+                data.coordinates.reference_point.lat, 
+                data.coordinates.reference_point.lon,
+                data.coordinates.reference_point.description,
+                {
+                    // Si hay distancia al punto de referencia, usarla para ajustar el zoom
+                    zoom: data.coordinates.reference_point.distance_km > 10 ? 8 : 10
+                }
+            );
+        }
+        
+        // Evento al hacer clic en el botón de verificar
+        checkLocationBtn.addEventListener('click', async function() {
+            try {
+                // Mostrar loading
+                loadingOverlay.style.display = 'flex';
+                resultsContainer.style.display = 'block';
+                
+                // Obtener coordenadas
+                let coordinates;
+                
+                if (useCurrentLocationCheckbox.checked) {
+                    try {
+                        coordinates = await getCurrentLocation();
+                        console.log("Usando ubicación del usuario:", coordinates);
+                    } catch (geoError) {
+                        // Si hay un error de geolocalización pero tenemos coordenadas manuales, usarlas
+                        if (!useCurrentLocationCheckbox.checked && latInput.value && lonInput.value) {
+                            console.log("Fallback a coordenadas manuales debido a error de geolocalización");
+                        } else {
+                            throw geoError; // Relanzar para el manejo general de errores
+                        }
+                    }
+                }
+                
+                // Si no se obtuvieron coordenadas por geolocalización o hubo un error, usar las manuales
+                if (!coordinates) {
+                    if (!latInput.value || !lonInput.value) {
+                        throw new Error('Por favor ingrese coordenadas válidas');
+                    }
+                    
+                    coordinates = {
+                        lat: parseFloat(latInput.value),
+                        lon: parseFloat(lonInput.value),
+                        source: 'manual'
+                    };
+                    console.log("Usando coordenadas manuales:", coordinates);
+                } else {
+                    coordinates.source = 'geolocation';
+                }
+                
+                // Realizar petición a la API
+                const response = await fetch('/proxy_forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: coordinates.lat,
+                        lon: coordinates.lon
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Comparar las coordenadas solicitadas vs. las del punto de referencia
+                if (data.coordinates && data.coordinates.reference_point) {
+                    const requested = data.coordinates.requested;
+                    const reference = data.coordinates.reference_point;
+                    
+                    console.log(`Coordenadas solicitadas: ${requested.lat}, ${requested.lon}`);
+                    console.log(`Punto de referencia: ${reference.lat}, ${reference.lon} (${reference.description})`);
+                    
+                    if (reference.distance_km > 0) {
+                        console.log(`Distancia al punto de referencia: ${reference.distance_km.toFixed(2)} km`);
+                    }
+                }
+                
+                // Actualizar la interfaz con los datos
+                updateUI(data);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Ocultar contenedor de resultados
+                resultsContainer.style.display = 'none';
+                
+                // Mostrar mensaje de error amigable
+                let errorMessage = error.message;
+                if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Error del servidor')) {
+                    errorMessage = 'No se pudo conectar con el servidor de predicción. Por favor, intente nuevamente más tarde.';
+                }
+                
+                alert('Error: ' + errorMessage);
+            } finally {
+                // Ocultar loading
+                loadingOverlay.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
